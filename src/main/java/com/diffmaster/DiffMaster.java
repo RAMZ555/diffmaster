@@ -69,11 +69,15 @@ public class DiffMaster {
      */
     public static DiffMasterBuilder compare(String expectedPath, String actualPath) {
         // Check if paths are files or raw content
-        Path expPath = Path.of(expectedPath);
-        Path actPath = Path.of(actualPath);
+        try {
+            Path expPath = Path.of(expectedPath);
+            Path actPath = Path.of(actualPath);
 
-        if (Files.exists(expPath) && Files.exists(actPath)) {
-            return new DiffMasterBuilder(new FileSource(expPath), new FileSource(actPath));
+            if (Files.exists(expPath) && Files.exists(actPath)) {
+                return new DiffMasterBuilder(new FileSource(expPath), new FileSource(actPath));
+            }
+        } catch (Exception e) {
+            // Not a valid file path (e.g. contains special chars), treat as raw content
         }
 
         // Treat as raw content
