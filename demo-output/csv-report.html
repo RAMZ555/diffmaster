@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV Demo Report</title>
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-card: #ffffff;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --border-color: #dee2e6;
+    --success-color: #28a745;
+    --success-bg: #d4edda;
+    --danger-color: #dc3545;
+    --danger-bg: #f8d7da;
+    --warning-color: #ffc107;
+    --warning-bg: #fff3cd;
+    --info-color: #17a2b8;
+    --info-bg: #d1ecf1;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .dark {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-card: #0f3460;
+    --text-primary: #eaeaea;
+    --text-secondary: #a0a0a0;
+    --border-color: #3a3a5c;
+    --success-bg: #1e4620;
+    --danger-bg: #4a1f1f;
+    --warning-bg: #4a3f1f;
+    --info-bg: #1f3a4a;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 20px;
+  }
+
+  .container { max-width: 1400px; margin: 0 auto; }
+
+  .header {
+    text-align: center;
+    padding: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+
+  .header h1 { font-size: 2rem; margin-bottom: 8px; }
+  .header .meta { opacity: 0.9; font-size: 0.9rem; }
+
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+  }
+
+  .card:hover { transform: translateY(-2px); }
+  .card .value { font-size: 2.5rem; font-weight: bold; }
+  .card .label { color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; }
+  .card.success .value { color: var(--success-color); }
+  .card.danger .value { color: var(--danger-color); }
+  .card.warning .value { color: var(--warning-color); }
+  .card.info .value { color: var(--info-color); }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .control-group { display: flex; gap: 8px; align-items: center; }
+
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+  }
+
+  button:hover { background: var(--info-color); color: white; }
+  button.active { background: var(--info-color); color: white; }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .diff-table th {
+    background: var(--bg-secondary);
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  .diff-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+  }
+
+  .diff-table tr:last-child td { border-bottom: none; }
+  .diff-table tr:hover { background: var(--bg-secondary); }
+
+  .path { font-family: 'Monaco', 'Consolas', monospace; font-size: 0.85rem; color: var(--info-color); }
+
+  .type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .type-MODIFIED { background: var(--warning-bg); color: var(--warning-color); }
+  .type-ADDED { background: var(--success-bg); color: var(--success-color); }
+  .type-REMOVED { background: var(--danger-bg); color: var(--danger-color); }
+  .type-MATCH { background: var(--info-bg); color: var(--info-color); }
+
+  .value-cell {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    max-width: 300px;
+  }
+
+  .value-expected { color: var(--danger-color); }
+  .value-actual { color: var(--success-color); }
+
+  .footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 30px;
+  }
+
+  .no-diff {
+    text-align: center;
+    padding: 60px;
+    color: var(--success-color);
+  }
+
+  .no-diff svg { width: 80px; height: 80px; margin-bottom: 16px; }
+
+  @media (max-width: 768px) {
+    .header h1 { font-size: 1.5rem; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+    .controls { flex-direction: column; }
+    .diff-table { font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body class="light">
+<div class="container">
+  <div class="header">
+    <h1>✗ CSV Demo Report</h1>
+    <div class="meta">
+      <strong>Expected:</strong> inline &nbsp;|&nbsp;
+      <strong>Actual:</strong> inline &nbsp;|&nbsp;
+      <strong>Generated:</strong> 2026-01-01 20:08:26
+    </div>
+  </div>
+  <div class="summary-cards">
+    <div class="card info">
+      <div class="value">9</div>
+      <div class="label">Total Fields</div>
+    </div>
+    <div class="card success">
+      <div class="value">0</div>
+      <div class="label">Matched</div>
+    </div>
+    <div class="card warning">
+      <div class="value">9</div>
+      <div class="label">Modified</div>
+    </div>
+    <div class="card danger">
+      <div class="value">0</div>
+      <div class="label">Added / Removed</div>
+    </div>
+    <div class="card">
+      <div class="value">0.0%</div>
+      <div class="label">Match Rate</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="control-group">
+      <button id="btnAll" class="active" onclick="filterDiffs('all')">All</button>
+      <button id="btnDiffs" onclick="filterDiffs('diff')">Differences Only</button>
+      <button id="btnModified" onclick="filterDiffs('MODIFIED')">Modified</button>
+      <button id="btnAdded" onclick="filterDiffs('ADDED')">Added</button>
+      <button id="btnRemoved" onclick="filterDiffs('REMOVED')">Removed</button>
+    </div>
+    <input type="text" class="search-box" id="searchBox" placeholder="Search paths or values..." oninput="searchDiffs()">
+    <button onclick="jumpToNext()">Next Diff ↓</button>
+  </div>
+  <table class="diff-table" id="diffTable">
+    <thead>
+      <tr>
+        <th style="width:50px">#</th>
+        <th>Path</th>
+        <th style="width:100px">Type</th>
+        <th>Expected</th>
+        <th>Actual</th>
+      </tr>
+    </thead>
+    <tbody>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>1</td>
+    <td class="path">row[1].id</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">1</td>
+    <td class="value-cell value-actual">3</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>2</td>
+    <td class="path">row[1].name</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">Alice</td>
+    <td class="value-cell value-actual">Charlie</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>3</td>
+    <td class="path">row[1].score</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">100</td>
+    <td class="value-cell value-actual">85</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>4</td>
+    <td class="path">row[2].id</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">2</td>
+    <td class="value-cell value-actual">1</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>5</td>
+    <td class="path">row[2].name</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">Bob</td>
+    <td class="value-cell value-actual">Alice</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>6</td>
+    <td class="path">row[2].score</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">90</td>
+    <td class="value-cell value-actual">100</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>7</td>
+    <td class="path">row[3].id</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">3</td>
+    <td class="value-cell value-actual">2</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>8</td>
+    <td class="path">row[3].name</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">Charlie</td>
+    <td class="value-cell value-actual">Bob</td>
+  </tr>
+  <tr class="diff-row" data-type="MODIFIED">
+    <td>9</td>
+    <td class="path">row[3].score</td>
+    <td><span class="type-badge type-MODIFIED">MODIFIED</span></td>
+    <td class="value-cell value-expected">85</td>
+    <td class="value-cell value-actual">92</td>
+  </tr>
+</tbody></table>
+    <div class="footer">
+      Generated by <strong>DiffMaster</strong> - Universal Data Comparator Library
+    </div>
+  </div>
+<script>
+  let currentDiffIndex = -1;
+
+  function filterDiffs(type) {
+    document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    const rows = document.querySelectorAll('#diffTable tbody tr');
+    rows.forEach(row => {
+      if (type === 'all') {
+        row.style.display = '';
+      } else if (type === 'diff') {
+        row.style.display = row.classList.contains('match-row') ? 'none' : '';
+      } else {
+        row.style.display = row.dataset.type === type ? '' : 'none';
+      }
+    });
+  }
+
+  function searchDiffs() {
+    const query = document.getElementById('searchBox').value.toLowerCase();
+    const rows = document.querySelectorAll('#diffTable tbody tr');
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(query) ? '' : 'none';
+    });
+  }
+
+  function jumpToNext() {
+    const visibleRows = [...document.querySelectorAll('#diffTable tbody tr.diff-row')]
+      .filter(r => r.style.display !== 'none');
+    if (visibleRows.length === 0) return;
+
+    currentDiffIndex = (currentDiffIndex + 1) % visibleRows.length;
+    visibleRows[currentDiffIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    visibleRows[currentDiffIndex].style.background = 'var(--warning-bg)';
+    setTimeout(() => {
+      visibleRows[currentDiffIndex].style.background = '';
+    }, 1500);
+  }
+
+  // Theme toggle
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' && e.ctrlKey) {
+      document.body.classList.toggle('dark');
+      document.body.classList.toggle('light');
+    }
+  });
+</script>
+</body>
+</html>
